@@ -1,4 +1,4 @@
-let input = "Monday, Tuesday, Wed, 10:00 to 14:00";
+let input = "Sunday, Mon, Thursday, Fri 10:00 to 14:00";
 let days: string[] = ["Monday", "Tuesday"];
 interface schedule{key: string, value: string[]}
 let schedule = {
@@ -8,7 +8,7 @@ let schedule = {
 console.log(input);
 
 function extractDays(input: string): string { // extract the days from the input string
-    let match = input.match(/[A-Za-z\s]+/);
+    let match = input.match(/[A-Za-z,\s]+/);//allow for commas for multiple days
     return match ? match[0].trim() : "";
 }
 console.log(extractDays(input));
@@ -30,21 +30,23 @@ let dayMap: { [key: string]: string } = {
     Sun: "Sunday",
 };
 
+const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];// define array of week days for easy indexing for the "to"
+
 function expandDays(input: string): string[] {
     let trimmedInput = input.trim();
-    let days = input.split("to"); // split the input string into an array of two strings
 
-    if(days.length === 2) {
-        let start = Object.keys(dayMap).indexOf(days[0]);
-        let end = Object.keys(dayMap).indexOf(days[1]);
+    if(trimmedInput.includes("to")) {
+        let [start, end] = trimmedInput.split("to").map(day => day.trim()); // split the input string into an array of two strings
+        let startIdx = weekDays.indexOf(start);
+        let endIdx = weekDays.indexOf(end);
 
-        if(start === -1 || end === -1) { //trim the input string to only the day
+        if(startIdx === -1 && endIdx === -1) { //trim the input string to only the day
 
-           return Object.keys(dayMap).slice(start, end + 1); // slice the array to include the start and end indices 
+           return weekDays.slice(startIdx, endIdx + 1); // slice the array to include the start and end indices 
            // (Slice is exclusive of last so we need to add 1)
         }
     }
-        return trimmedInput.split(", ").map((day) => dayMap[day] || day); // handle the case where there is only one day
+    return trimmedInput.split(", ").map(day => dayMap[day.trim()] || day.trim()); // handle comma separated days
 
 
 }
@@ -54,7 +56,7 @@ type timeRange = { from: string, to: string };
 type Schedule = { [key: string]: timeRange[] };
 
 
-function paraseSchedule(input: string): { [key: string] : { [key: string]: string }[] } {
+function paraseSchedule(input: string): Schedule {
     let schedule : Schedule = {};
     let daysPart = extractDays(input);
     let timePart = extractTime(input);
@@ -62,7 +64,7 @@ function paraseSchedule(input: string): { [key: string] : { [key: string]: strin
     let expandedDays = expandDays(daysPart);
 
     if(timePart.length === 2) {
-        let timeRange = {from: timePart[0], to: timePart[1].trim()};
+        let timeRange = {from: timePart[0].trim(), to: timePart[1].trim()}; //
 
         for (let day of expandedDays) {
             if(!schedule[day]) {
@@ -75,3 +77,8 @@ function paraseSchedule(input: string): { [key: string] : { [key: string]: strin
 }
 
 console.log(paraseSchedule(input));
+
+// ✅ Test Cases
+console.log(expandDays("Mon to Thu")); // ["Monday", "Tuesday", "Wednesday", "Thursday"]
+console.log(expandDays("Mon, Tue, Wed")); // ["Monday", "Tuesday", "Wednesday"]
+console.log(expandDays("Sun, Mon")); // ["Sunday", "Monday"]
