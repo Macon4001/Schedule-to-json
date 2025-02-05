@@ -3,7 +3,7 @@
     "outDir": "./dist",      // Specify where compiled JS files should go
     "rootDir": "./src",      // Specify where TypeScript files are located
     "module": "CommonJS",
-    "target": "ES6",
+    "target": "ES2017",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
