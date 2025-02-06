@@ -1,3 +1,6 @@
+// If the project breaks then just use this file. 
+// It's a backup of the original code I worte before the refactor.
+
 let input = "Mon, Tue, Wed 10:00 to 17:00, Thu 11:00 - 12:00, Fri 9am to noon, Weekends 10:30-11:30";
 let days: string[] = ["Monday", "Tuesday"];
 interface schedule{key: string, value: string[]}
