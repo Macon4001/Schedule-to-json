@@ -1,17 +1,32 @@
-let input = "Sunday, Mon, Thursday, Fri 10:00 to 14:00";
+let input = "Mon, Tuesday and weekend 10:00 till midnight";
 let days: string[] = ["Monday", "Tuesday"];
 interface schedule{key: string, value: string[]}
 let schedule = {
     monday: [{ from: "10:00", to: "14:00"}],
 };
 
-console.log(input);
+console.log("Input:",input);
+
+function normalizeDays(input: string): string {
+    return input
+        .toLowerCase()
+        .replace(/\bweekdays\b|\bmon to fri\b|\bmonday to friday\b/g, "Monday, Tuesday, Wednesday, Thursday, Friday")
+        .replace(/\bweekends\b|\bweekend\b|\bsat & sun\b|\bsaturday and sunday\b/g, "Saturday, Sunday")
+        .replace(/\bmon(?!day)\b/g, "Monday")
+        .replace(/\btue(?!sday)\b/g, "Tuesday")
+        .replace(/\bwed(?!nesday)\b/g, "Wednesday")
+        .replace(/\bthu(?!rsday)\b/g, "Thursday")
+        .replace(/\bfri(?!day)\b/g, "Friday")
+        .replace(/\bsat(?!urday)\b/g, "Saturday")
+        .replace(/\bsun(?!day)\b/g, "Sunday");
+}
+
 
 function extractDays(input: string): string { // extract the days from the input string
     let match = input.match(/[A-Za-z,\s]+/);//allow for commas for multiple days
     return match ? match[0].trim() : "";
 }
-console.log(extractDays(input));
+console.log("Extracted Days:", extractDays(input));
 
 //helper function to turn AM and PM into 24 hour time
 
@@ -30,18 +45,29 @@ function convertTo24Hour(time: string): string {
     let period =  match[3];
 
     if(period ===  "pm" && hours !== 12) hours += 12;  // convert pm to 24 hour 
-    if(period ===  "am" && hours !== 12) hours = 0;  // convert am to 25 hour
+    if(period ===  "am" && hours === 12) hours = 0;  // convert am to 25 hour
 
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 
 }
 
 function extractTime(input: string): { from: string; to: string }[]{
-    let matches = input.match(/\d{1,2}:\d{2} [APMapm]*|\d{1,2} [APMapm]+|\d{1,2}:\d{2}|\bnoon\b|\bmidnight\b/g); // define the time inputs we can take
-    
+    let matches = input.match(/\d{1,2}:\d{2}\s*[APMapm]*|\d{1,2}\s*[APMapm]+|\bnoon\b|\bmidnight\b|\b\d{1,2}\b/g); // define the time inputs we can take
+    console.log("Extracted Matches:", matches);
+
     if (!matches || matches.length < 2) return []; // if no times found retun empty array
 
-    let normalisedTimes: string[] = matches.map(time => convertTo24Hour(time.trim())); //apply the convertTo24Hour function to each time
+    let normalisedTimes: string[] = matches.map(time => {
+        time = time.trim();
+        if (time === "noon") return "12:00"; // Ensure Noon gets added
+        if (time === "midnight") return "00:00"; // Midnight is fine
+        if (/^\d{1,2}$/.test(time)) {
+            time = `${time}:00`; // Convert single numbers to "hh:00"
+        }
+        return convertTo24Hour(time);
+    });
+    console.log("Normalised Times:", normalisedTimes);
+
 
     let timeRanges: { from: string; to: string }[] = []; // initialise array to store output
 
@@ -54,7 +80,7 @@ function extractTime(input: string): { from: string; to: string }[]{
 }
 
 
-console.log(extractTime(input));
+console.log("Extracted Times:",extractTime(input));
 
 let dayMap: { [key: string]: string } = {
     Mon: "Monday",
@@ -69,14 +95,15 @@ let dayMap: { [key: string]: string } = {
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];// define array of week days for easy indexing for the "to"
 
 function expandDays(input: string): string[] {
-    let trimmedInput = input.trim();
+    let normalizedInput = normalizeDays(input);
+    let trimmedInput = normalizedInput.trim();
 
     if(trimmedInput.includes("to")) {
         let [start, end] = trimmedInput.split("to").map(day => day.trim()); // split the input string into an array of two strings
-        let startIdx = weekDays.indexOf(start);
-        let endIdx = weekDays.indexOf(end);
+        let startIdx = weekDays.findIndex(d => d.toLowerCase().startsWith(start.toLowerCase()));
+        let endIdx = weekDays.findIndex(d => d.toLowerCase().startsWith(end.toLowerCase()));
 
-        if(startIdx === -1 && endIdx === -1) { //trim the input string to only the day
+        if (startIdx !== -1 && endIdx !== -1) {//trim the input string to only the day
 
            return weekDays.slice(startIdx, endIdx + 1); // slice the array to include the start and end indices 
            // (Slice is exclusive of last so we need to add 1)
@@ -92,27 +119,42 @@ type timeRange = { from: string, to: string };
 type Schedule = { [key: string]: timeRange[] };
 
 
-function paraseSchedule(input: string): Schedule {
-    let schedule : Schedule = {};
-    let daysPart = extractDays(input);
-    let timePart = extractTime(input);
-    
-    let expandedDays = expandDays(daysPart);
+function parseSchedule(input: string): Schedule {
+    let schedule: Schedule = {};
 
-    if(timePart.length > 0) {// extract any time range not just when 2 are
-        let timeRange = {from: timePart[0], to: timePart[1]}; //
+    let parts = input.match(
+    /([A-Za-z,\s]+)\s+(\d{1,2}[:.]?\d{2}?\s*(?:am|pm)?\s*(?:to|-|till)\s*\b(?:\d{1,2}[:.]?\d{2}?|noon|midnight)\b)/gi
+) || [];
 
-        for (let day of expandedDays) {
-            let fullDay = dayMap[day] || day; 
+    console.log("Processing part:", parts);
 
-            if(!schedule[fullDay]) {
-                schedule[fullDay] = [];
+    for (let part of parts) {
+        let daysPart = extractDays(part); // Extract specific days for this segment
+        let timePart = extractTime(part); // Extract time range for this segment
+        let expandedDays = expandDays(daysPart); // Expand "weekends", "Mon to Wed" etc.
+        console.log("Extracted Time:", timePart);
+        console.log("Extracted Days:", expandedDays);
+
+        if (expandedDays.length > 0 && timePart.length > 0) {
+            for (let day of expandedDays) {
+                let formattedDay = day.charAt(0).toUpperCase() + day.slice(1); // Capitalize first letter
+
+                if (formattedDay === "") continue; // Ignore empty day entries
+
+                if (!schedule[formattedDay]) {
+                    schedule[formattedDay] = [];
+                }
+
+                schedule[formattedDay].push(...timePart); // Add only correct time range for each day
             }
-            schedule[fullDay].push(...timePart);
-        }   
+        }
     }
+    
     return schedule;
+    
 }
 
-console.log(paraseSchedule(input));
+
+
+console.log("Schedule-OUTPUT:", parseSchedule(input));
 
