@@ -1,4 +1,4 @@
-Schedule Parser
+**Schedule Parser**
 
 Overview
 
