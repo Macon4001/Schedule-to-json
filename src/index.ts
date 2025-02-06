@@ -1,4 +1,4 @@
-let input = "Mon, Wed and Fri from 10:00 to 12:00";
+let input = "Mon, Tue, Wed 10:00 to 17:00, Thu 11:00 - 12:00, Fri 9am to noon, Weekends 10:30-11:30";
 let days: string[] = ["Monday", "Tuesday"];
 interface schedule{key: string, value: string[]}
 let schedule = {
@@ -120,7 +120,7 @@ type timeRange = { from: string, to: string };
 type Schedule = { [key: string]: timeRange[] };
 
 
-function parseSchedule(input: string): Schedule {
+function parseSchedule(input: string): { schedule: { weeklyRanges: Schedule } } {
     let schedule: Schedule = {};
 
     let parts = input.match(
@@ -139,7 +139,7 @@ function parseSchedule(input: string): Schedule {
 
         if (expandedDays.length > 0 && timePart.length > 0) {
             for (let day of expandedDays) {
-                let formattedDay = day.charAt(0).toUpperCase() + day.slice(1); // Capitalize first letter
+                let formattedDay = day.toLowerCase(); // Capitalize first letter
 
                 if (formattedDay === "") continue; // Ignore empty day entries
 
@@ -152,11 +152,11 @@ function parseSchedule(input: string): Schedule {
         }
     }
     
-    return schedule;
+    return {schedule:{ weeklyRanges: schedule}};
     
 }
 
 
 
-console.log("Schedule-OUTPUT:", parseSchedule(input));
+console.log(JSON.stringify(parseSchedule(input), null, 2));
 
