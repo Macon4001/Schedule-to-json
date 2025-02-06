@@ -1,4 +1,4 @@
-let input = "Mon, Tuesday and weekend 10:00 till midnight";
+let input = "Mon, Wed and Fri from 10:00 to 12:00";
 let days: string[] = ["Monday", "Tuesday"];
 interface schedule{key: string, value: string[]}
 let schedule = {
@@ -24,7 +24,8 @@ function normalizeDays(input: string): string {
 
 function extractDays(input: string): string { // extract the days from the input string
     let match = input.match(/[A-Za-z,\s]+/);//allow for commas for multiple days
-    return match ? match[0].trim() : "";
+    if (!match) return "";
+    return match[0].replace(/\bfrom\b/gi, "").trim(); // Remove "from" before returning
 }
 console.log("Extracted Days:", extractDays(input));
 
@@ -123,9 +124,10 @@ function parseSchedule(input: string): Schedule {
     let schedule: Schedule = {};
 
     let parts = input.match(
-    /([A-Za-z,\s]+)\s+(\d{1,2}[:.]?\d{2}?\s*(?:am|pm)?\s*(?:to|-|till)\s*\b(?:\d{1,2}[:.]?\d{2}?|noon|midnight)\b)/gi
-) || [];
-
+        /([A-Za-z,\s]+)\s+(?:from\s*)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-|till)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|noon|midnight)/gi
+    ) || [];    
+    
+    
     console.log("Processing part:", parts);
 
     for (let part of parts) {

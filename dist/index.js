@@ -1,5 +1,5 @@
 "use strict";
-let input = "Mon, Tuesday and weekend 10:00 till midnight";
+let input = "Mon, Wed and Fri from 10:00 to 12:00";
 let days = ["Monday", "Tuesday"];
 let schedule = {
     monday: [{ from: "10:00", to: "14:00" }],
@@ -20,7 +20,9 @@ function normalizeDays(input) {
 }
 function extractDays(input) {
     let match = input.match(/[A-Za-z,\s]+/); //allow for commas for multiple days
-    return match ? match[0].trim() : "";
+    if (!match)
+        return "";
+    return match[0].replace(/\bfrom\b/gi, "").trim(); // Remove "from" before returning
 }
 console.log("Extracted Days:", extractDays(input));
 //helper function to turn AM and PM into 24 hour time
@@ -94,7 +96,7 @@ function expandDays(input) {
 }
 function parseSchedule(input) {
     let schedule = {};
-    let parts = input.match(/([A-Za-z,\s]+)\s+(\d{1,2}[:.]?\d{2}?\s*(?:am|pm)?\s*(?:to|-|till)\s*\b(?:\d{1,2}[:.]?\d{2}?|noon|midnight)\b)/gi) || [];
+    let parts = input.match(/([A-Za-z,\s]+)\s+(?:from\s*)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-|till)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|noon|midnight)/gi) || [];
     console.log("Processing part:", parts);
     for (let part of parts) {
         let daysPart = extractDays(part); // Extract specific days for this segment
